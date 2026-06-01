@@ -23,7 +23,7 @@ import os
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'protospace',
+        'NAME': 'first_app',
         'USER': 'postgres',
         'PASSWORD': os.environ.get('POSTGRESQL_PASSWORD'),
         'HOST': 'localhost',
