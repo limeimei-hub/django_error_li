@@ -3,5 +3,5 @@ from django import forms
 
 class PostForm(forms.ModelForm):
     class Meta:
-        model = Post
+        model = Posts
         fields = 'content'

@@ -103,7 +103,7 @@
   <div class="flow-row"><span class="flow-qn">Q06</span><span class="flow-desc"><strong>posts_urls.py</strong> <span class="file-tag multi">エラー×2</span> — 404 Not Found</span><span class="badge badge-easy">初級</span></div>
   <div class="flow-note">↓ フォーム表示成功。投稿ボタンを押す</div>
   <div class="flow-row"><span class="flow-qn">Q07</span><span class="flow-desc"><strong>create.html</strong> — 403 Forbidden</span><span class="badge badge-easy">初級</span></div>
-  <div class="flow-row"><span class="flow-qn">Q08</span><span class="flow-desc"><strong>forms.py</strong> — TypeError</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-row"><span class="flow-qn">Q08</span><span class="flow-desc"><strong>forms.py</strong> — NameError</span><span class="badge badge-easy">初級</span></div>
   <div class="flow-row"><span class="flow-qn">Q09</span><span class="flow-desc"><strong>views.py</strong> <span class="file-tag multi">エラー×3</span> — NoReverseMatch</span><span class="badge badge-easy">初級</span></div>
   <div class="flow-note">↓ 投稿成功。でも一覧に表示されない</div>
   <div class="flow-row"><span class="flow-qn">Q10</span><span class="flow-desc"><strong>views.py</strong> <span class="file-tag multi">エラー×3</span> — 保存されない（動作異常）</span><span class="badge badge-warn">確認</span></div>
@@ -321,25 +321,24 @@ CSRF verification failed. Request aborted.</div>
 <div class="card" id="c8">
   <div class="card-head" onclick="toggle('c8')">
     <span class="qnum">Q 08</span>
-    <span class="qtitle">投稿ボタンを押すと TypeError</span>
+    <span class="qtitle">投稿ボタンを押すと NameError</span>
     <span class="qfile">forms.py</span>
     <span class="badge badge-easy">初級</span>
     <span class="chevron">▶</span>
   </div>
   <div class="card-body">
-    <div class="error-banner"><div class="error-label">Browser Error</div>TypeError: PostForm.Meta.fields cannot be a string.
-Did you mean to type: fields = ['content']?</div>
-    <div class="task"><strong>タスク：</strong> <code>fields</code> の書き方を修正してください。</div>
+    <div class="error-banner"><div class="error-label">Browser Error</div>NameError: name 'Posts' is not defined</div>
+    <div class="task"><strong>タスク：</strong> <code>forms.py</code> のモデル指定を確認して修正してください。</div>
     <pre><span class="kw">class</span> <span class="cn">PostForm</span>(forms.<span class="cn">ModelForm</span>):
     <span class="kw">class</span> <span class="cn">Meta</span>:
-        model <span class="op">=</span> Post
-        fields <span class="op">=</span> <span class="st">'content'</span>  <span class="err"># ← 型が間違っている</span></pre>
+        model <span class="op">=</span> <span class="cn">Posts</span>  <span class="err"># ← モデル名が間違っている</span>
+        fields <span class="op">=</span> [<span class="st">'content'</span>]</pre>
     <div class="answer-toggle" onclick="toggleAns('a8')">🔑 解答を見る</div>
     <div class="answer-body" id="a8">
-      <p><strong>原因：</strong> <code>fields</code> はリストで渡す必要があります。文字列で渡すと各文字をフィールド名として解釈しようとして <code>TypeError</code> になります。</p>
+      <p><strong>原因：</strong> モデル名が <code>Posts</code>（s が余分）になっています。定義されていないクラス名を参照しているため <code>NameError</code> になります。</p>
       <div class="fix-label">✔ 修正後</div>
-      <pre>fields <span class="op">=</span> [<span class="st">'content'</span>]</pre>
-      <p>💡 全フィールド対象なら <code>fields = '__all__'</code>（文字列）も使えますが、明示的にリストで書くのがベストプラクティスです。</p>
+      <pre>model <span class="op">=</span> <span class="cn">Post</span></pre>
+      <p>💡 <strong>ポイント：</strong> <code>NameError: name 'XX' is not defined</code> は「そのクラスや変数が存在しない」というエラーです。スペルミスがないか確認しましょう。</p>
     </div>
   </div>
 </div>
