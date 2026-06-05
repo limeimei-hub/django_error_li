@@ -168,27 +168,25 @@ CSRF verification failed. Request aborted.
 
 ---
 
-### Q08 【初級】`forms.py` — 投稿ボタンを押すと TypeError
+### Q08 【初級】`forms.py` — 投稿ボタンを押すと NameError
 
 **出るエラー（ブラウザ）**
 ```
-TypeError: PostForm.Meta.fields cannot be a string.
-Did you mean to type: fields = ['content']?
+NameError: name 'Posts' is not defined
 ```
 
 **エラー箇所**
 ```python
-fields = 'content'
+model = Posts  # 's' が余分
 ```
 
 **修正後**
 ```python
-fields = ['content']
+model = Post
 ```
 
 **ポイント**
-`fields` はリストで指定します。文字列で渡すと各文字をフィールド名として解釈しようとして `TypeError` になります。
-
+`NameError: name 'XX' is not defined `は「そのクラスや変数が存在しない」というエラーです。スペルミスがないか確認しましょう。
 ---
 
 ### Q09 【初級】`views.py` — 投稿後に NoReverseMatch
