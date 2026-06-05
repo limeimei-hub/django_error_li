@@ -32,4 +32,4 @@ DATABASES = {
 }
 ```
 
-# READEME.htmlをブラウザで開いて、問題を解き始めてください
+# django_quiz_v3.htmlをブラウザで開いて、問題を解き始めてください

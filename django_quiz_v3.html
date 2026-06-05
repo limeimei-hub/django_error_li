@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Django デバッグ 問題集</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #20243a;
+    --border: #2a2f4a; --accent: #5c8aff; --green: #43d9ad;
+    --orange: #f5a623; --red: #ff6b6b; --text: #e2e8f0; --muted: #6b7494;
+    --mono: 'JetBrains Mono', monospace; --sans: 'Noto Sans JP', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.75; }
+
+  header { padding: 32px 48px 28px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+  .header-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; }
+  h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .header-desc { font-size: 13px; color: var(--muted); max-width: 580px; }
+
+  .flow-wrap { margin: 28px 48px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; }
+  .flow-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  .flow-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .flow-row:last-child { border-bottom: none; }
+  .flow-qn { font-family: var(--mono); font-size: 11px; color: var(--accent); min-width: 38px; }
+  .flow-desc { flex: 1; color: var(--muted); }
+  .flow-desc strong { color: var(--text); }
+  .flow-note { font-family: var(--mono); font-size: 11px; color: #3a4060; padding: 5px 0 5px 48px; }
+
+  /* ファイルバッジ */
+  .file-tag { font-family: var(--mono); font-size: 10px; background: #1a1f35; border: 1px solid var(--border); color: var(--muted); border-radius: 3px; padding: 1px 6px; margin-left: 4px; }
+  .file-tag.multi { color: var(--orange); border-color: #5a4000; background: #1e1500; }
+
+  main { padding: 16px 48px 80px; display: flex; flex-direction: column; gap: 12px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.2s; }
+  .card:hover { border-color: #3a4060; }
+  .card-head { display: flex; align-items: center; gap: 12px; padding: 13px 18px; background: var(--surface2); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  .qnum { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--accent); background: #1a2560; border-radius: 5px; padding: 2px 8px; min-width: 42px; text-align: center; }
+  .qtitle { font-size: 13px; font-weight: 500; flex: 1; }
+  .qfile { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 2px 9px; }
+  .qfile.multi { color: var(--orange); border-color: #5a4000; background: #1e1500; }
+  .badge { font-family: var(--mono); font-size: 10px; font-weight: 600; border-radius: 4px; padding: 2px 8px; letter-spacing: 0.04em; }
+  .badge-easy { background: #0d3d2e; color: var(--green); }
+  .badge-warn { background: #2a1a00; color: var(--orange); }
+  .chevron { font-size: 11px; color: var(--muted); transition: transform 0.22s; }
+  .card.open .chevron { transform: rotate(90deg); }
+  .card-body { display: none; }
+  .card.open .card-body { display: block; }
+
+  /* 複数エラー注記 */
+  .multi-note { margin: 14px 18px 0; padding: 8px 12px; background: #1e1a00; border: 1px solid #4a3800; border-radius: 6px; font-size: 12px; color: var(--orange); }
+  .multi-note strong { color: #ffd060; }
+
+  .error-banner { margin: 16px 18px 0; padding: 10px 14px; background: #1e0f0f; border: 1px solid #5a1f1f; border-radius: 6px; font-family: var(--mono); font-size: 12px; color: var(--red); white-space: pre-wrap; }
+  .error-label { font-size: 10px; letter-spacing: 0.1em; color: #7a3030; margin-bottom: 4px; text-transform: uppercase; }
+  .warn-banner { margin: 16px 18px 0; padding: 10px 14px; background: #1e1500; border: 1px solid #5a4000; border-radius: 6px; font-family: var(--mono); font-size: 12px; color: var(--orange); white-space: pre-wrap; }
+  .warn-label { font-size: 10px; letter-spacing: 0.1em; color: #7a5a00; margin-bottom: 4px; text-transform: uppercase; }
+
+  .task { padding: 12px 18px 4px; font-size: 13px; color: var(--muted); }
+  .task strong { color: var(--text); }
+
+  pre { margin: 10px 18px 18px; padding: 16px 18px; background: #090b13; border: 1px solid var(--border); border-radius: 7px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; }
+  .kw { color: #c792ea; } .fn { color: #82aaff; } .st { color: #c3e88d; }
+  .cm { color: #4a5568; font-style: italic; } .err { color: #ff6b6b; font-style: italic; }
+  .cn { color: #ffcb6b; } .op { color: #89ddff; } .tg { color: #f78c6c; } .at { color: #ffcb6b; }
+
+  .answer-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--surface2); border-top: 1px solid var(--border); cursor: pointer; font-size: 12px; color: var(--muted); transition: color 0.2s; user-select: none; }
+  .answer-toggle:hover { color: var(--green); }
+  .answer-body { display: none; padding: 16px 18px; border-top: 1px solid var(--border); background: #0b1209; font-size: 13px; }
+  .answer-body.show { display: block; }
+  .answer-body .fix-label { font-family: var(--mono); font-size: 10px; color: var(--green); opacity: 0.7; margin: 10px 0 4px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .answer-body pre { margin: 0 0 10px; background: #0d1a0e; border-color: #1a4a1f; color: var(--green); }
+  .answer-body p { color: #9bb89e; margin-bottom: 6px; }
+  .answer-body strong { color: var(--text); }
+  .answer-body .caution { color: var(--orange); margin-top: 8px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-label">Django Debug Training — Story Mode</div>
+  <h1>デバッグ問題集</h1>
+  <p class="header-desc">Q01 から順番に修正してください。1問直すと次のエラーが現れます。<br>
+  <span style="color: var(--orange);">⚠ オレンジ色のファイル名は複数のエラーが仕込まれています。</span> 指示された問題のエラーだけ直してください。</p>
+</header>
+
+<!-- フロー図 -->
+<div class="flow-wrap">
+  <div class="flow-title">// エラー出現フロー</div>
+  <div class="flow-note">$ python manage.py runserver</div>
+  <div class="flow-row"><span class="flow-qn">Q01</span><span class="flow-desc"><strong>config_urls.py</strong> — ModuleNotFoundError</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-note">↓ 起動成功。ブラウザで /posts/ を開く</div>
+  <div class="flow-row"><span class="flow-qn">Q02</span><span class="flow-desc"><strong>posts_urls.py</strong> <span class="file-tag multi">エラー×2</span> — NoReverseMatch</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-row"><span class="flow-qn">Q03</span><span class="flow-desc"><strong>views.py</strong> <span class="file-tag multi">エラー×3</span> — TemplateDoesNotExist</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-note">↓ ページ表示成功。CSS が当たっていない</div>
+  <div class="flow-row"><span class="flow-qn">Q04</span><span class="flow-desc"><strong>settings.py</strong> — CSS 未適用（動作異常）</span><span class="badge badge-warn">確認</span></div>
+  <div class="flow-note">↓ 「新規投稿」リンクをクリック</div>
+  <div class="flow-row"><span class="flow-qn">Q05</span><span class="flow-desc"><strong>index.html</strong> — NoReverseMatch</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-note">↓ /posts/create/ を開く</div>
+  <div class="flow-row"><span class="flow-qn">Q06</span><span class="flow-desc"><strong>posts_urls.py</strong> <span class="file-tag multi">エラー×2</span> — 404 Not Found</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-note">↓ フォーム表示成功。投稿ボタンを押す</div>
+  <div class="flow-row"><span class="flow-qn">Q07</span><span class="flow-desc"><strong>create.html</strong> — 403 Forbidden</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-row"><span class="flow-qn">Q08</span><span class="flow-desc"><strong>forms.py</strong> — TypeError</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-row"><span class="flow-qn">Q09</span><span class="flow-desc"><strong>views.py</strong> <span class="file-tag multi">エラー×3</span> — NoReverseMatch</span><span class="badge badge-easy">初級</span></div>
+  <div class="flow-note">↓ 投稿成功。でも一覧に表示されない</div>
+  <div class="flow-row"><span class="flow-qn">Q10</span><span class="flow-desc"><strong>views.py</strong> <span class="file-tag multi">エラー×3</span> — 保存されない（動作異常）</span><span class="badge badge-warn">確認</span></div>
+  <div class="flow-note">✔ 全問クリア！</div>
+</div>
+
+<main>
+
+<!-- Q01 -->
+<div class="card" id="c1">
+  <div class="card-head" onclick="toggle('c1')">
+    <span class="qnum">Q 01</span>
+    <span class="qtitle">サーバーが起動しない</span>
+    <span class="qfile">config_urls.py</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="error-banner"><div class="error-label">Terminal Error</div>ModuleNotFoundError: No module named 'urls'</div>
+    <div class="task"><strong>タスク：</strong> <code>include()</code> に渡すパスを正しく修正してください。</div>
+    <pre><span class="kw">from</span> django.contrib <span class="kw">import</span> admin
+<span class="kw">from</span> django.urls <span class="kw">import</span> path, include
+
+urlpatterns <span class="op">=</span> [
+    <span class="fn">path</span>(<span class="st">'admin/'</span>, admin.site.urls),
+    <span class="fn">path</span>(<span class="st">'posts/'</span>, <span class="fn">include</span>(<span class="st">'urls'</span>)),  <span class="err"># ← ここがおかしい</span>
+]</pre>
+    <div class="answer-toggle" onclick="toggleAns('a1')">🔑 解答を見る</div>
+    <div class="answer-body" id="a1">
+      <p><strong>原因：</strong> <code>'urls'</code> というモジュールは存在しません。アプリ名を含めたドット記法で指定します。</p>
+      <div class="fix-label">✔ 修正後</div>
+      <pre><span class="fn">path</span>(<span class="st">'posts/'</span>, <span class="fn">include</span>(<span class="st">'posts.urls'</span>)),</pre>
+      <p>💡 <code>include()</code> には <code>'アプリ名.urls'</code> の形式で渡します。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q02 -->
+<div class="card" id="c2">
+  <div class="card-head" onclick="toggle('c2')">
+    <span class="qnum">Q 02</span>
+    <span class="qtitle">/posts/ を開くと NoReverseMatch</span>
+    <span class="qfile multi">posts_urls.py</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="multi-note">⚠ このファイルには <strong>エラーが2つ</strong> あります。今回は1つ目だけ直してください。2つ目は Q06 で直します。</div>
+    <div class="error-banner"><div class="error-label">Browser Error</div>NoReverseMatch: 'posts' is not a registered namespace</div>
+    <div class="task"><strong>タスク：</strong> 名前空間の設定を確認して修正してください。</div>
+    <pre><span class="kw">from</span> django.urls <span class="kw">import</span> path
+<span class="kw">from</span> . <span class="kw">import</span> views
+
+app_name <span class="op">=</span> <span class="st">'post'</span>  <span class="err"># ← 今回直す箇所</span>
+
+urlpatterns <span class="op">=</span> [
+    <span class="fn">path</span>(<span class="st">''</span>, views.<span class="cn">IndexView</span>.<span class="fn">as_view</span>(), name<span class="op">=</span><span class="st">'index'</span>),
+    <span class="fn">path</span>(<span class="st">'creates/'</span>, views.<span class="cn">CreateView</span>.<span class="fn">as_view</span>(), name<span class="op">=</span><span class="st">'create'</span>),  <span class="cm"># ← Q06 で直す</span>
+]</pre>
+    <div class="answer-toggle" onclick="toggleAns('a2')">🔑 解答を見る</div>
+    <div class="answer-body" id="a2">
+      <p><strong>原因：</strong> <code>'post'</code> は <code>'s'</code> が抜けたタイポです。<code>redirect('posts:index')</code> などと一致しません。</p>
+      <div class="fix-label">✔ 修正後（今回直す箇所のみ）</div>
+      <pre>app_name <span class="op">=</span> <span class="st">'posts'</span></pre>
+      <p class="caution">⚠ <code>'creates/'</code> の行は今回触らないでください。Q06 で直します。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q03 -->
+<div class="card" id="c3">
+  <div class="card-head" onclick="toggle('c3')">
+    <span class="qnum">Q 03</span>
+    <span class="qtitle">/posts/ を開くと TemplateDoesNotExist</span>
+    <span class="qfile multi">views.py</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="multi-note">⚠ このファイルには <strong>エラーが3つ</strong> あります。今回は1つ目だけ直してください。残りは Q09・Q10 で直します。</div>
+    <div class="error-banner"><div class="error-label">Browser Error</div>TemplateDoesNotExist: index.html</div>
+    <div class="task"><strong>タスク：</strong> テンプレートのパス指定を修正してください。テンプレートファイルは <code>templates/posts/index.html</code> にあります。</div>
+    <pre><span class="kw">class</span> <span class="cn">IndexView</span>(<span class="cn">View</span>):
+    <span class="kw">def</span> <span class="fn">get</span>(<span class="op">self</span>, request, <span class="op">*</span>args, <span class="op">**</span>kwargs):
+        posts <span class="op">=</span> Post.objects.<span class="fn">all</span>()
+        <span class="kw">return</span> <span class="fn">render</span>(request, <span class="st">'index.html'</span>, {<span class="st">'posts'</span>: posts})  <span class="err"># ← 今回直す箇所</span>
+
+<span class="kw">class</span> <span class="cn">CreateView</span>(<span class="cn">View</span>):
+    <span class="kw">def</span> <span class="fn">post</span>(<span class="op">self</span>, request, <span class="op">*</span>args, <span class="op">**</span>kwargs):
+        form <span class="op">=</span> <span class="fn">PostForm</span>(request.POST)
+        <span class="kw">if</span> form.<span class="fn">is_valid</span>():
+            form.save  <span class="cm"># ← Q10 で直す</span>
+            <span class="kw">return</span> <span class="fn">redirect</span>(<span class="st">'index'</span>)  <span class="cm"># ← Q09 で直す</span>
+        <span class="kw">return</span> <span class="fn">render</span>(request, <span class="st">'posts/create.html'</span>, {<span class="st">'form'</span>: form})</pre>
+    <div class="answer-toggle" onclick="toggleAns('a3')">🔑 解答を見る</div>
+    <div class="answer-body" id="a3">
+      <p><strong>原因：</strong> テンプレートは <code>templates/posts/index.html</code> にありますが <code>'index.html'</code> と指定しているため見つかりません。</p>
+      <div class="fix-label">✔ 修正後（今回直す箇所のみ）</div>
+      <pre><span class="kw">return</span> <span class="fn">render</span>(request, <span class="st">'posts/index.html'</span>, {<span class="st">'posts'</span>: posts})</pre>
+      <p class="caution">⚠ <code>form.save</code> と <code>redirect('index')</code> は今回触らないでください。Q09・Q10 で直します。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q04 -->
+<div class="card" id="c4">
+  <div class="card-head" onclick="toggle('c4')">
+    <span class="qnum">Q 04</span>
+    <span class="qtitle">ページは表示されるが CSS が当たっていない</span>
+    <span class="qfile">settings.py</span>
+    <span class="badge badge-warn">確認</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="warn-banner"><div class="warn-label">動作異常（エラーは出ない）</div>ページは表示されるが CSS が反映されず見た目が崩れている。
+ブラウザの開発者ツール（F12）→ ネットワークタブで CSS が 404 になっている。</div>
+    <div class="task"><strong>タスク：</strong> 静的ファイルの設定を確認して修正してください。静的ファイルのディレクトリ名は <code>static</code> です。</div>
+    <pre><span class="cn">STATIC_URL</span> <span class="op">=</span> <span class="st">'/static/'</span>
+<span class="cn">STATICFILES_DIRS</span> <span class="op">=</span> [BASE_DIR <span class="op">/</span> <span class="st">'statics'</span>]  <span class="err"># ← ここがおかしい</span></pre>
+    <div class="answer-toggle" onclick="toggleAns('a4')">🔑 解答を見る</div>
+    <div class="answer-body" id="a4">
+      <p><strong>原因：</strong> 実際のディレクトリ名は <code>static</code> ですが <code>'statics'</code> と指定しているため CSS が見つかりません。</p>
+      <div class="fix-label">✔ 修正後</div>
+      <pre><span class="cn">STATICFILES_DIRS</span> <span class="op">=</span> [BASE_DIR <span class="op">/</span> <span class="st">'static'</span>]</pre>
+      <p>💡 CSS が表示されないときはブラウザの開発者ツール（F12）のネットワークタブで 404 になっていないか確認しましょう。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q05 -->
+<div class="card" id="c5">
+  <div class="card-head" onclick="toggle('c5')">
+    <span class="qnum">Q 05</span>
+    <span class="qtitle">「新規投稿」リンクで NoReverseMatch</span>
+    <span class="qfile">index.html</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="error-banner"><div class="error-label">Browser Error</div>NoReverseMatch: Reverse for 'create' not found.
+'create' is not a valid view function or pattern name.</div>
+    <div class="task"><strong>タスク：</strong> <code>{% url %}</code> タグの記述を修正してください。</div>
+    <pre><span class="tg">&lt;a</span> <span class="at">href</span>=<span class="st">"{% url 'create' %}"</span><span class="tg">&gt;</span>新規投稿<span class="tg">&lt;/a&gt;</span>  <span class="err">{# ← 名前空間が抜けている #}</span></pre>
+    <div class="answer-toggle" onclick="toggleAns('a5')">🔑 解答を見る</div>
+    <div class="answer-body" id="a5">
+      <p><strong>原因：</strong> <code>app_name = 'posts'</code> を定義しているため <code>{% url %}</code> も名前空間付きにする必要があります。</p>
+      <div class="fix-label">✔ 修正後</div>
+      <pre><span class="tg">&lt;a</span> <span class="at">href</span>=<span class="st">"{% url 'posts:create' %}"</span><span class="tg">&gt;</span>新規投稿<span class="tg">&lt;/a&gt;</span></pre>
+      <p>💡 <code>{% url %}</code> と <code>redirect()</code> は同じルール。<code>app_name</code> を設定したら両方に <code>名前空間:</code> が必要です。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q06 -->
+<div class="card" id="c6">
+  <div class="card-head" onclick="toggle('c6')">
+    <span class="qnum">Q 06</span>
+    <span class="qtitle">投稿フォームを開くと 404</span>
+    <span class="qfile multi">posts_urls.py</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="multi-note">⚠ このファイルの Q02 は修正済みのはずです。今回は2つ目のエラーを直してください。</div>
+    <div class="error-banner"><div class="error-label">Browser Error</div>Page not found (404)
+/posts/create/ に一致するURLパターンが見つかりませんでした</div>
+    <div class="task"><strong>タスク：</strong> URL パターンの定義を確認して修正してください。</div>
+    <pre>urlpatterns <span class="op">=</span> [
+    <span class="fn">path</span>(<span class="st">''</span>, views.<span class="cn">IndexView</span>.<span class="fn">as_view</span>(), name<span class="op">=</span><span class="st">'index'</span>),
+    <span class="fn">path</span>(<span class="st">'creates/'</span>, views.<span class="cn">CreateView</span>.<span class="fn">as_view</span>(), name<span class="op">=</span><span class="st">'create'</span>),  <span class="err"># ← 今回直す箇所</span>
+]</pre>
+    <div class="answer-toggle" onclick="toggleAns('a6')">🔑 解答を見る</div>
+    <div class="answer-body" id="a6">
+      <p><strong>原因：</strong> <code>'creates/'</code> と定義されているため <code>/posts/create/</code> へのアクセスが 404 になります。</p>
+      <div class="fix-label">✔ 修正後</div>
+      <pre><span class="fn">path</span>(<span class="st">'create/'</span>, views.<span class="cn">CreateView</span>.<span class="fn">as_view</span>(), name<span class="op">=</span><span class="st">'create'</span>),</pre>
+      <p>💡 404 が出たときはまず <code>urls.py</code> のパス定義を見直しましょう。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q07 -->
+<div class="card" id="c7">
+  <div class="card-head" onclick="toggle('c7')">
+    <span class="qnum">Q 07</span>
+    <span class="qtitle">投稿ボタンを押すと 403 Forbidden</span>
+    <span class="qfile">create.html</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="error-banner"><div class="error-label">Browser Error</div>403 Forbidden
+CSRF verification failed. Request aborted.</div>
+    <div class="task"><strong>タスク：</strong> フォームに必要なものが抜けています。追加してください。</div>
+    <pre><span class="tg">&lt;form</span> <span class="at">method</span>=<span class="st">"post"</span><span class="tg">&gt;</span>
+  <span class="err">{# ← 何かが足りない #}</span>
+  <span class="tg">{{</span> form.content <span class="tg">}}</span>
+  <span class="tg">&lt;button</span> <span class="at">type</span>=<span class="st">"submit"</span><span class="tg">&gt;</span>投稿する<span class="tg">&lt;/button&gt;</span>
+<span class="tg">&lt;/form&gt;</span></pre>
+    <div class="answer-toggle" onclick="toggleAns('a7')">🔑 解答を見る</div>
+    <div class="answer-body" id="a7">
+      <p><strong>原因：</strong> Django は POST リクエストに CSRF トークンを要求します。これがないと 403 を返します。</p>
+      <div class="fix-label">✔ 修正後</div>
+      <pre><span class="tg">&lt;form</span> <span class="at">method</span>=<span class="st">"post"</span><span class="tg">&gt;</span>
+  <span class="tg">{%</span> csrf_token <span class="tg">%}</span>
+  <span class="tg">{{</span> form.content <span class="tg">}}</span>
+  <span class="tg">&lt;button</span> <span class="at">type</span>=<span class="st">"submit"</span><span class="tg">&gt;</span>投稿する<span class="tg">&lt;/button&gt;</span>
+<span class="tg">&lt;/form&gt;</span></pre>
+      <p>💡 <code>method="post"</code> のフォームには必ず <code>{% csrf_token %}</code> を書きます。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q08 -->
+<div class="card" id="c8">
+  <div class="card-head" onclick="toggle('c8')">
+    <span class="qnum">Q 08</span>
+    <span class="qtitle">投稿ボタンを押すと TypeError</span>
+    <span class="qfile">forms.py</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="error-banner"><div class="error-label">Browser Error</div>TypeError: PostForm.Meta.fields cannot be a string.
+Did you mean to type: fields = ['content']?</div>
+    <div class="task"><strong>タスク：</strong> <code>fields</code> の書き方を修正してください。</div>
+    <pre><span class="kw">class</span> <span class="cn">PostForm</span>(forms.<span class="cn">ModelForm</span>):
+    <span class="kw">class</span> <span class="cn">Meta</span>:
+        model <span class="op">=</span> Post
+        fields <span class="op">=</span> <span class="st">'content'</span>  <span class="err"># ← 型が間違っている</span></pre>
+    <div class="answer-toggle" onclick="toggleAns('a8')">🔑 解答を見る</div>
+    <div class="answer-body" id="a8">
+      <p><strong>原因：</strong> <code>fields</code> はリストで渡す必要があります。文字列で渡すと各文字をフィールド名として解釈しようとして <code>TypeError</code> になります。</p>
+      <div class="fix-label">✔ 修正後</div>
+      <pre>fields <span class="op">=</span> [<span class="st">'content'</span>]</pre>
+      <p>💡 全フィールド対象なら <code>fields = '__all__'</code>（文字列）も使えますが、明示的にリストで書くのがベストプラクティスです。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q09 -->
+<div class="card" id="c9">
+  <div class="card-head" onclick="toggle('c9')">
+    <span class="qnum">Q 09</span>
+    <span class="qtitle">投稿後に NoReverseMatch</span>
+    <span class="qfile multi">views.py</span>
+    <span class="badge badge-easy">初級</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="multi-note">⚠ このファイルの Q03 は修正済みのはずです。今回は2つ目のエラーを直してください。3つ目は Q10 で直します。</div>
+    <div class="error-banner"><div class="error-label">Browser Error</div>NoReverseMatch: Reverse for 'index' not found.
+'index' is not a valid view function or pattern name.</div>
+    <div class="task"><strong>タスク：</strong> <code>redirect()</code> の引数を修正してください。</div>
+    <pre><span class="kw">if</span> form.<span class="fn">is_valid</span>():
+    form.save  <span class="cm"># ← Q10 で直す</span>
+    <span class="kw">return</span> <span class="fn">redirect</span>(<span class="st">'index'</span>)  <span class="err"># ← 今回直す箇所</span></pre>
+    <div class="answer-toggle" onclick="toggleAns('a9')">🔑 解答を見る</div>
+    <div class="answer-body" id="a9">
+      <p><strong>原因：</strong> <code>app_name = 'posts'</code> を定義しているため <code>redirect()</code> も名前空間付きにする必要があります。</p>
+      <div class="fix-label">✔ 修正後（今回直す箇所のみ）</div>
+      <pre><span class="kw">return</span> <span class="fn">redirect</span>(<span class="st">'posts:index'</span>)</pre>
+      <p class="caution">⚠ <code>form.save</code> は今回触らないでください。Q10 で直します。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Q10 -->
+<div class="card" id="c10">
+  <div class="card-head" onclick="toggle('c10')">
+    <span class="qnum">Q 10</span>
+    <span class="qtitle">投稿しても一覧に表示されない</span>
+    <span class="qfile multi">views.py</span>
+    <span class="badge badge-warn">確認</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="multi-note">⚠ このファイルの Q03・Q09 は修正済みのはずです。今回は最後のエラーを直してください。</div>
+    <div class="warn-banner"><div class="warn-label">動作異常（エラーは出ない）</div>投稿ボタンを押しても一覧ページに投稿が表示されない。
+エラーメッセージは何も出ない。</div>
+    <div class="task"><strong>タスク：</strong> 投稿が保存されない原因を見つけて修正してください。</div>
+    <pre><span class="kw">if</span> form.<span class="fn">is_valid</span>():
+    form.save  <span class="err"># ← ここがおかしい</span>
+    <span class="kw">return</span> <span class="fn">redirect</span>(<span class="st">'posts:index'</span>)</pre>
+    <div class="answer-toggle" onclick="toggleAns('a10')">🔑 解答を見る</div>
+    <div class="answer-body" id="a10">
+      <p><strong>原因：</strong> <code>form.save</code> は括弧がないためメソッドを呼び出していません。DB への保存が行われないまま処理が進みます。Python はこれをエラーにしないため気づきにくいバグです。</p>
+      <div class="fix-label">✔ 修正後</div>
+      <pre>form.<span class="fn">save</span>()  <span class="cm"># () を付けて呼び出す</span></pre>
+      <p>💡 「エラーは出ないのに動かない」場合は <code>()</code> 抜けを疑いましょう。<code>form.save</code>・<code>post.save</code> など括弧なしでは何も実行されません。</p>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+function toggle(id) { document.getElementById(id).classList.toggle('open'); }
+function toggleAns(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('show');
+  el.previousElementSibling.textContent = el.classList.contains('show') ? '🔒 解答を隠す' : '🔑 解答を見る';
+}
+</script>
+</body>
+</html>

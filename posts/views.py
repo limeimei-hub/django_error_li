@@ -16,5 +16,6 @@ class CreateView(View):
     def post(self, request, *args, **kwargs):
         form = PostForm(request.POST)
         if form.is_valid():
-            form.save()
-        return redirect('index')
+            form.save
+            return redirect('index')
+        return render(request, 'posts/create.html', {'form': form})

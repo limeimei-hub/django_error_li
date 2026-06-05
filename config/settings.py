@@ -4,9 +4,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-8m9y&hoy$ol18&blzveo099hw=+5ah4q2eigx=7fcpjq5yibbw'
-
 DEBUG = True
-
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
@@ -17,6 +15,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'posts',
 ]
 
 MIDDLEWARE = [
@@ -54,7 +53,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'first_app',
         'USER': 'postgres',
-        'PASSWORD': os.environ.get('POSTGRESQL_PASSWORD'), #ご自身の設定したパスワードを設定しましょう
+        'PASSWORD': os.environ.get('POSTGRESQL_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '5433', #ご自身の設定したポート番号を設定しましょう
     }
@@ -73,6 +72,6 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'statics']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
